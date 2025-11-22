@@ -27,7 +27,7 @@ import java.lang.reflect.Method
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.coroutines.Continuation
 
-class CoCacheKeyGenerator(
+internal class CoCacheKeyGenerator(
 	private val expressionParser: ExpressionParser,
 	private val parameterNameDiscoverer: ParameterNameDiscoverer,
 	private val bakedExpressions: ConcurrentHashMap<String, Expression> = ConcurrentHashMap()

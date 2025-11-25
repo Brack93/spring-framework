@@ -14,8 +14,20 @@
  * limitations under the License.
  */
 
-package org.springframework.web.reactive.function.server.cache
+package org.springframework.web.reactive.function.server.cache.context
 
-@Retention(AnnotationRetention.RUNTIME)
-@Target(AnnotationTarget.FUNCTION)
-annotation class CoCacheable(val key: String = "")
+import kotlinx.coroutines.withContext
+import org.springframework.web.server.CoWebFilter
+import org.springframework.web.server.CoWebFilterChain
+import org.springframework.web.server.ServerWebExchange
+
+internal class CoRequestCacheWebFilter : CoWebFilter() {
+	override suspend fun filter(
+		exchange: ServerWebExchange,
+		chain: CoWebFilterChain
+	) {
+		return withContext(CoRequestCacheContext()) {
+			chain.filter(exchange)
+		}
+	}
+}

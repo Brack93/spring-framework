@@ -26,43 +26,43 @@ import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.core.DefaultParameterNameDiscoverer
 import org.springframework.expression.spel.standard.SpelExpressionParser
-import org.springframework.web.reactive.function.server.cache.CoCacheable
-import org.springframework.web.reactive.function.server.cache.context.CoCacheWebFilter
-import org.springframework.web.reactive.function.server.cache.interceptor.CoCacheInterceptor
-import org.springframework.web.reactive.function.server.cache.interceptor.CoCacheKeyGenerator
+import org.springframework.web.reactive.function.server.cache.CoRequestCacheable
+import org.springframework.web.reactive.function.server.cache.context.CoRequestCacheWebFilter
+import org.springframework.web.reactive.function.server.cache.interceptor.CoRequestCacheInterceptor
+import org.springframework.web.reactive.function.server.cache.interceptor.CoRequestCacheKeyGenerator
 import org.springframework.web.server.CoWebFilter
 
-private const val CO_CACHE_ADVISOR_PREFIX = "coCache"
+private const val CO_REQUEST_CACHE_ADVISOR_PREFIX = "coRequestCache"
 
 @Configuration(proxyBeanMethods = false)
-internal class CoCacheConfiguration {
+internal class CoRequestCacheConfiguration {
 	@Bean
-	fun coCacheInterceptor(): MethodInterceptor =
-		CoCacheInterceptor(
-			CoCacheKeyGenerator(
+	fun coRequestCacheInterceptor(): MethodInterceptor =
+		CoRequestCacheInterceptor(
+			CoRequestCacheKeyGenerator(
 				SpelExpressionParser(),
 				DefaultParameterNameDiscoverer()
 			)
 		)
 
 	@Bean
-	fun coCachePointcut(): Pointcut =
-		AnnotationMatchingPointcut(null, CoCacheable::class.java)
+	fun coRequestCachePointcut(): Pointcut =
+		AnnotationMatchingPointcut(null, CoRequestCacheable::class.java)
 
-	@Bean("$CO_CACHE_ADVISOR_PREFIX.advisor")
-	fun coCacheAdvisor(
-		coCacheInterceptor: MethodInterceptor,
-		coCachePointcut: Pointcut,
-	): Advisor = DefaultPointcutAdvisor(coCachePointcut, coCacheInterceptor)
+	@Bean("$CO_REQUEST_CACHE_ADVISOR_PREFIX.advisor")
+	fun coRequestCacheAdvisor(
+		coRequestCacheInterceptor: MethodInterceptor,
+		coRequestCachePointcut: Pointcut,
+	): Advisor = DefaultPointcutAdvisor(coRequestCachePointcut, coRequestCacheInterceptor)
 
 	@Bean
-	fun coCacheAdvisorAutoProxyCreator(): DefaultAdvisorAutoProxyCreator =
+	fun coRequestCacheAdvisorAutoProxyCreator(): DefaultAdvisorAutoProxyCreator =
 		DefaultAdvisorAutoProxyCreator().apply {
 			isUsePrefix = true
-			advisorBeanNamePrefix = CO_CACHE_ADVISOR_PREFIX
+			advisorBeanNamePrefix = CO_REQUEST_CACHE_ADVISOR_PREFIX
 			isProxyTargetClass = true
 		}
 
 	@Bean
-	fun coCacheWebFilter(): CoWebFilter = CoCacheWebFilter()
+	fun coRequestCacheWebFilter(): CoWebFilter = CoRequestCacheWebFilter()
 }

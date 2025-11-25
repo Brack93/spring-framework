@@ -17,9 +17,9 @@
 package org.springframework.web.reactive.function.server.cache
 
 import org.springframework.context.annotation.Import
-import org.springframework.web.reactive.function.server.cache.config.CoCacheConfiguration
+import org.springframework.web.reactive.function.server.cache.config.CoRequestCacheConfiguration
 
 @Target(AnnotationTarget.CLASS)
 @Retention(AnnotationRetention.RUNTIME)
-@Import(CoCacheConfiguration::class)
-annotation class EnableCoCaching
+@Import(CoRequestCacheConfiguration::class)
+annotation class EnableCoRequestCaching

@@ -19,30 +19,32 @@ package org.springframework.web.reactive.function.server.cache.interceptor
 import org.aopalliance.intercept.MethodInterceptor
 import org.aopalliance.intercept.MethodInvocation
 import org.springframework.cache.interceptor.KeyGenerator
-import org.springframework.web.reactive.function.server.cache.context.CoCacheContext
+import org.springframework.web.reactive.function.server.cache.context.CoRequestCacheContext
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
 import kotlin.coroutines.Continuation
 import kotlin.reflect.jvm.jvmName
 
-internal class CoCacheInterceptor(private val keyGenerator: KeyGenerator) : MethodInterceptor {
+internal class CoRequestCacheInterceptor(private val keyGenerator: KeyGenerator) : MethodInterceptor {
 	override fun invoke(invocation: MethodInvocation): Any? {
-		val coCache =
+		val coRequestCache =
 			(invocation.arguments.lastOrNull() as? Continuation<*>)
-				?.context[CoCacheContext.Key]?.cache
+				?.context[CoRequestCacheContext.Key]?.cache
 				?: return invocation.proceed()
 
 		val targetObject = invocation.getThis() ?: throw IllegalStateException()
 
-		val coCacheKey = keyGenerator.generate(targetObject, invocation.method, *invocation.arguments)
+		val coRequestCacheKey = keyGenerator.generate(targetObject, invocation.method, *invocation.arguments)
 
-		return coCache.computeIfAbsent(coCacheKey) {
+		return coRequestCache.computeIfAbsent(coRequestCacheKey) {
 			when (val publisher = invocation.proceed()) {
 				is Mono<*> -> publisher.share()
-				is Flux<*> -> publisher.buffer()
-					.flatMapIterable { it }
-					.replay()
-					.refCount(1)
+				is Flux<*> ->
+					publisher
+						.buffer()
+						.flatMapIterable { it }
+						.replay()
+						.refCount(1)
 
 				else -> throw IllegalArgumentException("Unexpected type ${publisher?.let { it::class.jvmName }}")
 			}

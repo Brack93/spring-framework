@@ -16,18 +16,13 @@
 
 package org.springframework.web.reactive.function.server.cache.context
 
-import kotlinx.coroutines.withContext
-import org.springframework.web.server.CoWebFilter
-import org.springframework.web.server.CoWebFilterChain
-import org.springframework.web.server.ServerWebExchange
+import org.reactivestreams.Publisher
+import java.util.concurrent.ConcurrentHashMap
+import kotlin.coroutines.AbstractCoroutineContextElement
+import kotlin.coroutines.CoroutineContext
 
-internal class CoCacheWebFilter : CoWebFilter() {
-	override suspend fun filter(
-		exchange: ServerWebExchange,
-		chain: CoWebFilterChain
-	) {
-		return withContext(CoCacheContext()) {
-			chain.filter(exchange)
-		}
-	}
+internal class CoRequestCacheContext(
+	val cache: ConcurrentHashMap<Any, Publisher<*>> = ConcurrentHashMap()
+) : AbstractCoroutineContextElement(Key) {
+	companion object Key : CoroutineContext.Key<CoRequestCacheContext>
 }

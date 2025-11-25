@@ -22,12 +22,12 @@ import org.springframework.context.expression.MethodBasedEvaluationContext
 import org.springframework.core.ParameterNameDiscoverer
 import org.springframework.expression.Expression
 import org.springframework.expression.ExpressionParser
-import org.springframework.web.reactive.function.server.cache.CoCacheable
+import org.springframework.web.reactive.function.server.cache.CoRequestCacheable
 import java.lang.reflect.Method
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.coroutines.Continuation
 
-internal class CoCacheKeyGenerator(
+internal class CoRequestCacheKeyGenerator(
 	private val expressionParser: ExpressionParser,
 	private val parameterNameDiscoverer: ParameterNameDiscoverer,
 	private val bakedExpressions: ConcurrentHashMap<String, Expression> = ConcurrentHashMap()
@@ -43,7 +43,7 @@ internal class CoCacheKeyGenerator(
 			return SimpleKey(targetClass, methodName)
 		}
 
-		val expressionString = method.getAnnotation(CoCacheable::class.java).key
+		val expressionString = method.getAnnotation(CoRequestCacheable::class.java).key
 
 		return if (expressionString.isBlank()) {
 			SimpleKey(targetClass, methodName, params.copyOfRange(0, params.size - 1))

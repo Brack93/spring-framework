@@ -14,15 +14,8 @@
  * limitations under the License.
  */
 
-package org.springframework.web.reactive.function.server.cache.context
+package org.springframework.web.reactive.function.server.cache
 
-import org.reactivestreams.Publisher
-import java.util.concurrent.ConcurrentHashMap
-import kotlin.coroutines.AbstractCoroutineContextElement
-import kotlin.coroutines.CoroutineContext
-
-internal class CoCacheContext(
-	val cache: ConcurrentHashMap<Any, Publisher<*>> = ConcurrentHashMap()
-) : AbstractCoroutineContextElement(Key) {
-	companion object Key : CoroutineContext.Key<CoCacheContext>
-}
+@Retention(AnnotationRetention.RUNTIME)
+@Target(AnnotationTarget.FUNCTION)
+annotation class CoRequestCacheable(val key: String = "")

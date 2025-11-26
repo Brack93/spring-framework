@@ -16,6 +16,7 @@
 
 package org.springframework.web.reactive.function.server.cache.interceptor
 
+import org.springframework.aop.support.AopUtils
 import org.springframework.cache.interceptor.KeyGenerator
 import org.springframework.cache.interceptor.SimpleKey
 import org.springframework.context.expression.MethodBasedEvaluationContext
@@ -36,7 +37,7 @@ internal class CoRequestCacheKeyGenerator(
 	override fun generate(target: Any, method: Method, vararg params: Any?): Any {
 		check(params.lastOrNull() is Continuation<*>)
 
-		val targetClass = target::class
+		val targetClass = AopUtils.getTargetClass(target)
 		val methodName = method.name
 
 		if (params.size == 1) {

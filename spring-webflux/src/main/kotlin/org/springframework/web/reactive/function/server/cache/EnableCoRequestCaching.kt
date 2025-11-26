@@ -16,10 +16,16 @@
 
 package org.springframework.web.reactive.function.server.cache
 
+import org.springframework.context.annotation.AdviceMode
 import org.springframework.context.annotation.Import
-import org.springframework.web.reactive.function.server.cache.config.CoRequestCacheConfiguration
+import org.springframework.core.Ordered
+import org.springframework.web.reactive.function.server.cache.config.CoRequestCacheConfigurationSelector
 
 @Target(AnnotationTarget.CLASS)
 @Retention(AnnotationRetention.RUNTIME)
-@Import(CoRequestCacheConfiguration::class)
-annotation class EnableCoRequestCaching
+@Import(CoRequestCacheConfigurationSelector::class)
+annotation class EnableCoRequestCaching(
+	val proxyTargetClass: Boolean = false,
+	val order: Int = Ordered.LOWEST_PRECEDENCE,
+	val mode: AdviceMode = AdviceMode.PROXY
+)

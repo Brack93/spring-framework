@@ -18,25 +18,38 @@ package org.springframework.web.reactive.function.server.cache.config
 
 import org.aopalliance.intercept.MethodInterceptor
 import org.springframework.aop.Advisor
-import org.springframework.aop.Pointcut
-import org.springframework.aop.framework.autoproxy.DefaultAdvisorAutoProxyCreator
-import org.springframework.aop.support.DefaultPointcutAdvisor
-import org.springframework.aop.support.annotation.AnnotationMatchingPointcut
+import org.springframework.beans.factory.config.BeanDefinition
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
+import org.springframework.context.annotation.ImportAware
+import org.springframework.context.annotation.Role
 import org.springframework.core.DefaultParameterNameDiscoverer
+import org.springframework.core.annotation.AnnotationAttributes
+import org.springframework.core.type.AnnotationMetadata
 import org.springframework.expression.spel.standard.SpelExpressionParser
-import org.springframework.web.reactive.function.server.cache.CoRequestCacheable
+import org.springframework.web.reactive.function.server.cache.EnableCoRequestCaching
 import org.springframework.web.reactive.function.server.cache.context.CoRequestCacheWebFilter
 import org.springframework.web.reactive.function.server.cache.interceptor.CoRequestCacheInterceptor
 import org.springframework.web.reactive.function.server.cache.interceptor.CoRequestCacheKeyGenerator
 import org.springframework.web.server.CoWebFilter
-
-private const val CO_REQUEST_CACHE_ADVISOR_PREFIX = "coRequestCache"
+import kotlin.reflect.jvm.jvmName
 
 @Configuration(proxyBeanMethods = false)
-internal class CoRequestCacheConfiguration {
+@Role(BeanDefinition.ROLE_INFRASTRUCTURE)
+internal class CoRequestCacheConfiguration : ImportAware {
+	lateinit var enableCoRequestCaching: AnnotationAttributes
+
+	override fun setImportMetadata(importMetadata: AnnotationMetadata) {
+		enableCoRequestCaching =
+			AnnotationAttributes.fromMap(
+				importMetadata.getAnnotationAttributes(EnableCoRequestCaching::class.jvmName)
+			) ?: throw IllegalArgumentException(
+				"@EnableCoRequestCaching is not present on importing class ${importMetadata.className}"
+			)
+	}
+
 	@Bean
+	@Role(BeanDefinition.ROLE_INFRASTRUCTURE)
 	fun coRequestCacheInterceptor(): MethodInterceptor =
 		CoRequestCacheInterceptor(
 			CoRequestCacheKeyGenerator(
@@ -46,23 +59,16 @@ internal class CoRequestCacheConfiguration {
 		)
 
 	@Bean
-	fun coRequestCachePointcut(): Pointcut =
-		AnnotationMatchingPointcut(null, CoRequestCacheable::class.java)
-
-	@Bean("$CO_REQUEST_CACHE_ADVISOR_PREFIX.advisor")
-	fun coRequestCacheAdvisor(
-		coRequestCacheInterceptor: MethodInterceptor,
-		coRequestCachePointcut: Pointcut,
-	): Advisor = DefaultPointcutAdvisor(coRequestCachePointcut, coRequestCacheInterceptor)
-
-	@Bean
-	fun coRequestCacheAdvisorAutoProxyCreator(): DefaultAdvisorAutoProxyCreator =
-		DefaultAdvisorAutoProxyCreator().apply {
-			isUsePrefix = true
-			advisorBeanNamePrefix = CO_REQUEST_CACHE_ADVISOR_PREFIX
-			isProxyTargetClass = true
-		}
+	@Role(BeanDefinition.ROLE_INFRASTRUCTURE)
+	fun coRequestCacheAdvisor(coRequestCacheInterceptor: MethodInterceptor): Advisor =
+		CoRequestCacheAdvisor(coRequestCacheInterceptor)
+			.apply {
+				if (::enableCoRequestCaching.isInitialized) {
+					order = enableCoRequestCaching.getNumber("order")
+				}
+			}
 
 	@Bean
+	@Role(BeanDefinition.ROLE_INFRASTRUCTURE)
 	fun coRequestCacheWebFilter(): CoWebFilter = CoRequestCacheWebFilter()
 }

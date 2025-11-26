@@ -1516,7 +1516,7 @@ public class HttpHeaders implements Serializable {
 	 * @since 5.1.4
 	 */
 	public void setInstant(String headerName, Instant date) {
-		setZonedDateTime(headerName, ZonedDateTime.ofInstant(date, GMT));
+		setZonedDateTime(headerName, date.atZone(GMT));
 	}
 
 	/**
@@ -2172,7 +2172,7 @@ public class HttpHeaders implements Serializable {
 	// Package-private: used in ResponseCookie
 	static String formatDate(long date) {
 		Instant instant = Instant.ofEpochMilli(date);
-		ZonedDateTime time = ZonedDateTime.ofInstant(instant, GMT);
+		ZonedDateTime time = instant.atZone(GMT);
 		return DATE_FORMATTER.format(time);
 	}
 

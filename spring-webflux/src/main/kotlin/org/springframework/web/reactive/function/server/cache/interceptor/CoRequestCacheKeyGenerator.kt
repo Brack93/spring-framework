@@ -29,6 +29,7 @@ import java.util.concurrent.ConcurrentHashMap
 import kotlin.coroutines.Continuation
 
 internal class CoRequestCacheKeyGenerator(
+	private val coRequestCacheableInstances: Map<NullaryMethodIdentity, CoRequestCacheable>,
 	private val expressionParser: ExpressionParser,
 	private val parameterNameDiscoverer: ParameterNameDiscoverer,
 	private val bakedExpressions: ConcurrentHashMap<String, Expression> = ConcurrentHashMap()
@@ -40,14 +41,17 @@ internal class CoRequestCacheKeyGenerator(
 		val targetClass = AopUtils.getTargetClass(target)
 		val methodName = method.name
 
+		val nullaryMethodIdentity = NullaryMethodIdentity(targetClass, methodName)
+
 		if (params.size == 1) {
-			return SimpleKey(targetClass, methodName)
+			return nullaryMethodIdentity
 		}
 
-		val expressionString = method.getAnnotation(CoRequestCacheable::class.java).key
+		val coRequestCacheable = checkNotNull(coRequestCacheableInstances[nullaryMethodIdentity])
+		val expressionString = coRequestCacheable.key
 
 		return if (expressionString.isBlank()) {
-			SimpleKey(targetClass, methodName, params.copyOfRange(0, params.size - 1))
+			SimpleKey(nullaryMethodIdentity, params.copyOfRange(0, params.size - 1))
 		} else {
 			val context =
 				MethodBasedEvaluationContext(
@@ -62,7 +66,7 @@ internal class CoRequestCacheKeyGenerator(
 					expressionParser.parseExpression(it)
 				}
 
-			SimpleKey(targetClass, methodName, expression.getValue(context))
+			SimpleKey(nullaryMethodIdentity, expression.getValue(context))
 		}
 	}
 }

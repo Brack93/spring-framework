@@ -27,11 +27,14 @@ import org.springframework.core.DefaultParameterNameDiscoverer
 import org.springframework.core.annotation.AnnotationAttributes
 import org.springframework.core.type.AnnotationMetadata
 import org.springframework.expression.spel.standard.SpelExpressionParser
+import org.springframework.web.reactive.function.server.cache.CoRequestCacheable
 import org.springframework.web.reactive.function.server.cache.EnableCoRequestCaching
 import org.springframework.web.reactive.function.server.cache.context.CoRequestCacheWebFilter
 import org.springframework.web.reactive.function.server.cache.interceptor.CoRequestCacheInterceptor
 import org.springframework.web.reactive.function.server.cache.interceptor.CoRequestCacheKeyGenerator
+import org.springframework.web.reactive.function.server.cache.interceptor.NullaryMethodIdentity
 import org.springframework.web.server.CoWebFilter
+import java.util.concurrent.ConcurrentHashMap
 import kotlin.reflect.jvm.jvmName
 
 @Configuration(proxyBeanMethods = false)
@@ -50,9 +53,14 @@ internal class CoRequestCacheConfiguration : ImportAware {
 
 	@Bean
 	@Role(BeanDefinition.ROLE_INFRASTRUCTURE)
-	fun coRequestCacheInterceptor(): MethodInterceptor =
+	fun coRequestCacheableInstances(): MutableMap<NullaryMethodIdentity, CoRequestCacheable> = ConcurrentHashMap()
+
+	@Bean
+	@Role(BeanDefinition.ROLE_INFRASTRUCTURE)
+	fun coRequestCacheInterceptor(coRequestCacheableInstances: Map<NullaryMethodIdentity, CoRequestCacheable>): MethodInterceptor =
 		CoRequestCacheInterceptor(
 			CoRequestCacheKeyGenerator(
+				coRequestCacheableInstances,
 				SpelExpressionParser(),
 				DefaultParameterNameDiscoverer()
 			)
@@ -60,8 +68,14 @@ internal class CoRequestCacheConfiguration : ImportAware {
 
 	@Bean
 	@Role(BeanDefinition.ROLE_INFRASTRUCTURE)
-	fun coRequestCacheAdvisor(coRequestCacheInterceptor: MethodInterceptor): Advisor =
-		CoRequestCacheAdvisor(coRequestCacheInterceptor)
+	fun coRequestCacheAdvisor(
+		coRequestCacheableInstances: MutableMap<NullaryMethodIdentity, CoRequestCacheable>,
+		coRequestCacheInterceptor: MethodInterceptor
+	): Advisor =
+		CoRequestCacheAdvisor(
+			coRequestCacheableInstances,
+			coRequestCacheInterceptor
+		)
 			.apply {
 				if (::enableCoRequestCaching.isInitialized) {
 					order = enableCoRequestCaching.getNumber("order")

@@ -18,11 +18,25 @@ package org.springframework.web.reactive.function.server.cache.config
 
 import org.aopalliance.aop.Advice
 import org.springframework.aop.support.StaticMethodMatcherPointcutAdvisor
+import org.springframework.core.annotation.AnnotatedElementUtils
 import org.springframework.web.reactive.function.server.cache.CoRequestCacheable
+import org.springframework.web.reactive.function.server.cache.interceptor.NullaryMethodIdentity
 import java.lang.reflect.Method
 
-internal class CoRequestCacheAdvisor(coRequestCacheAdvice: Advice) : StaticMethodMatcherPointcutAdvisor(coRequestCacheAdvice) {
+internal class CoRequestCacheAdvisor(
+	val coRequestCacheableInstances: MutableMap<NullaryMethodIdentity, CoRequestCacheable>,
+	coRequestCacheAdvice: Advice
+) : StaticMethodMatcherPointcutAdvisor(coRequestCacheAdvice) {
 	override fun matches(method: Method, targetClass: Class<*>): Boolean {
-		return method.isAnnotationPresent(CoRequestCacheable::class.java)
+		val coRequestCacheable = AnnotatedElementUtils
+			.findMergedAnnotation(method, CoRequestCacheable::class.java)
+
+		if (coRequestCacheable == null) return false
+
+		val nullaryMethodIdentity = NullaryMethodIdentity(targetClass, method.name)
+
+		coRequestCacheableInstances[nullaryMethodIdentity] = coRequestCacheable
+
+		return true
 	}
 }

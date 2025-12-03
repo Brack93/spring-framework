@@ -14,29 +14,17 @@
  * limitations under the License.
  */
 
-package org.springframework.web.reactive.function.server.cache.config
+package org.springframework.web.reactive.function.server.cache.interceptor
 
 import org.aopalliance.aop.Advice
 import org.springframework.aop.support.StaticMethodMatcherPointcutAdvisor
-import org.springframework.core.annotation.AnnotatedElementUtils
-import org.springframework.web.reactive.function.server.cache.CoRequestCacheable
-import org.springframework.web.reactive.function.server.cache.interceptor.NullaryMethodIdentity
+import org.springframework.cache.interceptor.CacheOperationSource
 import java.lang.reflect.Method
 
 internal class CoRequestCacheAdvisor(
-	val coRequestCacheableInstances: MutableMap<NullaryMethodIdentity, CoRequestCacheable>,
-	coRequestCacheAdvice: Advice
+	val coRequestCacheOperationSource: CacheOperationSource,
+	coRequestCacheAdvice: Advice,
 ) : StaticMethodMatcherPointcutAdvisor(coRequestCacheAdvice) {
-	override fun matches(method: Method, targetClass: Class<*>): Boolean {
-		val coRequestCacheable = AnnotatedElementUtils
-			.findMergedAnnotation(method, CoRequestCacheable::class.java)
-
-		if (coRequestCacheable == null) return false
-
-		val nullaryMethodIdentity = NullaryMethodIdentity(targetClass, method.name)
-
-		coRequestCacheableInstances[nullaryMethodIdentity] = coRequestCacheable
-
-		return true
-	}
+	override fun matches(method: Method, targetClass: Class<*>): Boolean =
+		coRequestCacheOperationSource.hasCacheOperations(method, targetClass)
 }

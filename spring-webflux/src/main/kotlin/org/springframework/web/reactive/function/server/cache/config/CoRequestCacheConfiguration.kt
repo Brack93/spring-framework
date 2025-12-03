@@ -19,6 +19,7 @@ package org.springframework.web.reactive.function.server.cache.config
 import org.aopalliance.intercept.MethodInterceptor
 import org.springframework.aop.Advisor
 import org.springframework.beans.factory.config.BeanDefinition
+import org.springframework.cache.interceptor.CacheOperationSource
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.context.annotation.ImportAware
@@ -27,14 +28,13 @@ import org.springframework.core.DefaultParameterNameDiscoverer
 import org.springframework.core.annotation.AnnotationAttributes
 import org.springframework.core.type.AnnotationMetadata
 import org.springframework.expression.spel.standard.SpelExpressionParser
-import org.springframework.web.reactive.function.server.cache.CoRequestCacheable
 import org.springframework.web.reactive.function.server.cache.EnableCoRequestCaching
+import org.springframework.web.reactive.function.server.cache.operation.CoRequestCacheOperationSource
 import org.springframework.web.reactive.function.server.cache.context.CoRequestCacheWebFilter
+import org.springframework.web.reactive.function.server.cache.interceptor.CoRequestCacheAdvisor
 import org.springframework.web.reactive.function.server.cache.interceptor.CoRequestCacheInterceptor
 import org.springframework.web.reactive.function.server.cache.interceptor.CoRequestCacheKeyGenerator
-import org.springframework.web.reactive.function.server.cache.interceptor.NullaryMethodIdentity
 import org.springframework.web.server.CoWebFilter
-import java.util.concurrent.ConcurrentHashMap
 import kotlin.reflect.jvm.jvmName
 
 @Configuration(proxyBeanMethods = false)
@@ -53,14 +53,14 @@ internal class CoRequestCacheConfiguration : ImportAware {
 
 	@Bean
 	@Role(BeanDefinition.ROLE_INFRASTRUCTURE)
-	fun coRequestCacheableInstances(): MutableMap<NullaryMethodIdentity, CoRequestCacheable> = ConcurrentHashMap()
+	fun coRequestCacheOperationSource(): CacheOperationSource = CoRequestCacheOperationSource()
 
 	@Bean
 	@Role(BeanDefinition.ROLE_INFRASTRUCTURE)
-	fun coRequestCacheInterceptor(coRequestCacheableInstances: Map<NullaryMethodIdentity, CoRequestCacheable>): MethodInterceptor =
+	fun coRequestCacheInterceptor(coRequestCacheOperationSource: CoRequestCacheOperationSource): MethodInterceptor =
 		CoRequestCacheInterceptor(
 			CoRequestCacheKeyGenerator(
-				coRequestCacheableInstances,
+				coRequestCacheOperationSource,
 				SpelExpressionParser(),
 				DefaultParameterNameDiscoverer()
 			)
@@ -69,11 +69,11 @@ internal class CoRequestCacheConfiguration : ImportAware {
 	@Bean
 	@Role(BeanDefinition.ROLE_INFRASTRUCTURE)
 	fun coRequestCacheAdvisor(
-		coRequestCacheableInstances: MutableMap<NullaryMethodIdentity, CoRequestCacheable>,
+		coRequestCacheOperationSource: CacheOperationSource,
 		coRequestCacheInterceptor: MethodInterceptor
 	): Advisor =
 		CoRequestCacheAdvisor(
-			coRequestCacheableInstances,
+			coRequestCacheOperationSource,
 			coRequestCacheInterceptor
 		)
 			.apply {

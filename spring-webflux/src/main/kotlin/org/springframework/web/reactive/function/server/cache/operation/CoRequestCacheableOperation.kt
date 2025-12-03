@@ -14,9 +14,14 @@
  * limitations under the License.
  */
 
-package org.springframework.web.reactive.function.server.cache.interceptor
+package org.springframework.web.reactive.function.server.cache.operation
 
-internal data class NullaryMethodIdentity(
-	val clazz: Class<*>,
-	val methodName: String
-)
+import org.springframework.cache.interceptor.CacheOperation
+
+internal class CoRequestCacheableOperation(builder: Builder) : CacheOperation(builder) {
+	class Builder : CacheOperation.Builder() {
+		override fun build(): CacheOperation {
+			return CoRequestCacheableOperation(this)
+		}
+	}
+}

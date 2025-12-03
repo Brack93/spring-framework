@@ -22,9 +22,9 @@ import org.springframework.context.annotation.AutoProxyRegistrar
 import org.springframework.web.reactive.function.server.cache.EnableCoRequestCaching
 import kotlin.reflect.jvm.jvmName
 
-private const val UNSUPPORTED_ADVISE_MODE_MESSAGE = "CoRequestCaching only support proxy mode"
+private const val UNSUPPORTED_ADVISE_MODE_MESSAGE = "CoRequestCaching does not support aspectj advice mode"
 
-internal class CoRequestCacheConfigurationSelector: AdviceModeImportSelector<EnableCoRequestCaching>() {
+internal class CoRequestCacheConfigurationSelector : AdviceModeImportSelector<EnableCoRequestCaching>() {
 	override fun selectImports(adviceMode: AdviceMode): Array<out String> =
 		when (adviceMode) {
 			AdviceMode.PROXY -> arrayOf(AutoProxyRegistrar::class.jvmName, CoRequestCacheConfiguration::class.jvmName)

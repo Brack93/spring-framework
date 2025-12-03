@@ -16,20 +16,21 @@
 
 package org.springframework.web.reactive.function.server.cache.interceptor
 
-import org.springframework.aop.support.AopUtils
+import org.springframework.aop.framework.AopProxyUtils
 import org.springframework.cache.interceptor.KeyGenerator
 import org.springframework.cache.interceptor.SimpleKey
 import org.springframework.context.expression.MethodBasedEvaluationContext
 import org.springframework.core.ParameterNameDiscoverer
 import org.springframework.expression.Expression
 import org.springframework.expression.ExpressionParser
-import org.springframework.web.reactive.function.server.cache.CoRequestCacheable
+import org.springframework.web.reactive.function.server.cache.operation.CoRequestCacheOperationSource
+import org.springframework.web.reactive.function.server.cache.operation.CoRequestCacheableOperation
 import java.lang.reflect.Method
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.coroutines.Continuation
 
 internal class CoRequestCacheKeyGenerator(
-	private val coRequestCacheableInstances: Map<NullaryMethodIdentity, CoRequestCacheable>,
+	private val coRequestCacheOperationSource: CoRequestCacheOperationSource,
 	private val expressionParser: ExpressionParser,
 	private val parameterNameDiscoverer: ParameterNameDiscoverer,
 	private val bakedExpressions: ConcurrentHashMap<String, Expression> = ConcurrentHashMap()
@@ -38,7 +39,7 @@ internal class CoRequestCacheKeyGenerator(
 	override fun generate(target: Any, method: Method, vararg params: Any?): Any {
 		check(params.lastOrNull() is Continuation<*>)
 
-		val targetClass = AopUtils.getTargetClass(target)
+		val targetClass = AopProxyUtils.ultimateTargetClass(target)
 		val methodName = method.name
 
 		val nullaryMethodIdentity = NullaryMethodIdentity(targetClass, methodName)
@@ -47,8 +48,11 @@ internal class CoRequestCacheKeyGenerator(
 			return nullaryMethodIdentity
 		}
 
-		val coRequestCacheable = checkNotNull(coRequestCacheableInstances[nullaryMethodIdentity])
-		val expressionString = coRequestCacheable.key
+		val coRequestCacheableOperation = coRequestCacheOperationSource
+			.getCacheOperations(method, targetClass)
+			?.firstOrNull() as? CoRequestCacheableOperation
+
+		val expressionString = checkNotNull(coRequestCacheableOperation?.key)
 
 		return if (expressionString.isBlank()) {
 			SimpleKey(nullaryMethodIdentity, params.copyOfRange(0, params.size - 1))

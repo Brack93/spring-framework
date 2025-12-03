@@ -24,7 +24,6 @@ import org.springframework.core.ParameterNameDiscoverer
 import org.springframework.expression.Expression
 import org.springframework.expression.ExpressionParser
 import org.springframework.web.reactive.function.server.cache.operation.CoRequestCacheOperationSource
-import org.springframework.web.reactive.function.server.cache.operation.CoRequestCacheableOperation
 import java.lang.reflect.Method
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.coroutines.Continuation
@@ -40,19 +39,17 @@ internal class CoRequestCacheKeyGenerator(
 		check(params.lastOrNull() is Continuation<*>)
 
 		val targetClass = AopProxyUtils.ultimateTargetClass(target)
-		val methodName = method.name
 
-		val nullaryMethodIdentity = NullaryMethodIdentity(targetClass, methodName)
+		val nullaryMethodIdentity = NullaryMethodIdentity(targetClass, method.name)
 
 		if (params.size == 1) {
 			return nullaryMethodIdentity
 		}
 
-		val coRequestCacheableOperation = coRequestCacheOperationSource
-			.getCacheOperations(method, targetClass)
-			?.firstOrNull() as? CoRequestCacheableOperation
+		val coRequestCacheOperation = coRequestCacheOperationSource.getCacheOperations(method, targetClass)
+		check(1 == coRequestCacheOperation?.size)
 
-		val expressionString = checkNotNull(coRequestCacheableOperation?.key)
+		val expressionString = coRequestCacheOperation.first().key
 
 		return if (expressionString.isBlank()) {
 			SimpleKey(nullaryMethodIdentity, params.copyOfRange(0, params.size - 1))

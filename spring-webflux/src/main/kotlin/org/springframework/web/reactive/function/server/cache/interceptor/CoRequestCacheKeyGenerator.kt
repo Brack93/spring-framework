@@ -17,57 +17,78 @@
 package org.springframework.web.reactive.function.server.cache.interceptor
 
 import org.springframework.aop.framework.AopProxyUtils
+import org.springframework.aop.support.AopUtils
 import org.springframework.cache.interceptor.KeyGenerator
 import org.springframework.cache.interceptor.SimpleKey
+import org.springframework.context.expression.AnnotatedElementKey
+import org.springframework.context.expression.CachedExpressionEvaluator
 import org.springframework.context.expression.MethodBasedEvaluationContext
-import org.springframework.core.ParameterNameDiscoverer
+import org.springframework.core.BridgeMethodResolver
 import org.springframework.expression.Expression
-import org.springframework.expression.ExpressionParser
 import org.springframework.web.reactive.function.server.cache.operation.CoRequestCacheOperationSource
 import java.lang.reflect.Method
+import java.lang.reflect.Proxy
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.coroutines.Continuation
 
 internal class CoRequestCacheKeyGenerator(
 	private val coRequestCacheOperationSource: CoRequestCacheOperationSource,
-	private val expressionParser: ExpressionParser,
-	private val parameterNameDiscoverer: ParameterNameDiscoverer,
-	private val bakedExpressions: ConcurrentHashMap<String, Expression> = ConcurrentHashMap()
-) : KeyGenerator {
+) : KeyGenerator, CachedExpressionEvaluator() {
+	private val bakedExpressions: MutableMap<ExpressionKey, Expression> = ConcurrentHashMap()
 
 	override fun generate(target: Any, method: Method, vararg params: Any?): Any {
 		check(params.lastOrNull() is Continuation<*>)
 
 		val targetClass = AopProxyUtils.ultimateTargetClass(target)
-
 		val nullaryMethodIdentity = NullaryMethodIdentity(targetClass, method.name)
 
 		if (params.size == 1) {
 			return nullaryMethodIdentity
 		}
 
-		val coRequestCacheOperation = coRequestCacheOperationSource.getCacheOperations(method, targetClass)
-		check(1 == coRequestCacheOperation?.size)
+		val keyExpression: String = coRequestCacheKeyExpression(method, targetClass)
 
-		val expressionString = coRequestCacheOperation.first().key
-
-		return if (expressionString.isBlank()) {
+		return if (keyExpression.isBlank()) {
 			SimpleKey(nullaryMethodIdentity, params.copyOfRange(0, params.size - 1))
 		} else {
+			val targetMethod = ultimateTargetMethod(method, targetClass)
+
+			val expression =
+				getExpression(
+					this.bakedExpressions,
+					AnnotatedElementKey(targetMethod, targetClass),
+					keyExpression
+				)
+
 			val context =
 				MethodBasedEvaluationContext(
 					target,
-					method,
+					targetMethod,
 					params,
 					parameterNameDiscoverer,
 				)
 
-			val expression =
-				bakedExpressions.computeIfAbsent(expressionString) {
-					expressionParser.parseExpression(it)
-				}
-
 			SimpleKey(nullaryMethodIdentity, expression.getValue(context))
 		}
+	}
+
+	private fun coRequestCacheKeyExpression(method: Method, targetClass: Class<*>): String {
+		val coRequestCacheOperations = coRequestCacheOperationSource.getCacheOperations(method, targetClass)
+
+		check(1 == coRequestCacheOperations?.size)
+
+		return coRequestCacheOperations.first().key
+	}
+
+	private fun ultimateTargetMethod(
+		method: Method,
+		targetClass: Class<*>
+	): Method {
+		var method = BridgeMethodResolver.findBridgedMethod(method)
+
+		if (!Proxy.isProxyClass(targetClass)) {
+			method = AopUtils.getMostSpecificMethod(method, targetClass)
+		}
+		return method
 	}
 }

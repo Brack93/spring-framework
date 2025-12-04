@@ -24,10 +24,8 @@ import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.context.annotation.ImportAware
 import org.springframework.context.annotation.Role
-import org.springframework.core.DefaultParameterNameDiscoverer
 import org.springframework.core.annotation.AnnotationAttributes
 import org.springframework.core.type.AnnotationMetadata
-import org.springframework.expression.spel.standard.SpelExpressionParser
 import org.springframework.web.reactive.function.server.cache.EnableCoRequestCaching
 import org.springframework.web.reactive.function.server.cache.operation.CoRequestCacheOperationSource
 import org.springframework.web.reactive.function.server.cache.context.CoRequestCacheWebFilter
@@ -60,9 +58,7 @@ internal class CoRequestCacheConfiguration : ImportAware {
 	fun coRequestCacheInterceptor(coRequestCacheOperationSource: CoRequestCacheOperationSource): MethodInterceptor =
 		CoRequestCacheInterceptor(
 			CoRequestCacheKeyGenerator(
-				coRequestCacheOperationSource,
-				SpelExpressionParser(),
-				DefaultParameterNameDiscoverer()
+				coRequestCacheOperationSource
 			)
 		)
 

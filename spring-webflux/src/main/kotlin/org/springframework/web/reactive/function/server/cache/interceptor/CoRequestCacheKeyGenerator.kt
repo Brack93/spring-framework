@@ -49,7 +49,7 @@ internal class CoRequestCacheKeyGenerator(
 		val keyExpression: String = coRequestCacheKeyExpression(method, targetClass)
 
 		return if (keyExpression.isBlank()) {
-			SimpleKey(nullaryMethodIdentity, params.copyOfRange(0, params.size - 1))
+			SimpleKey(nullaryMethodIdentity, *params.copyOfRange(0, params.size - 1))
 		} else {
 			val targetMethod = ultimateTargetMethod(method, targetClass)
 

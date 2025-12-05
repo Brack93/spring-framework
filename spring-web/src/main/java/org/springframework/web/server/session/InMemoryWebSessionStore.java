@@ -41,6 +41,7 @@ import org.springframework.web.server.WebSession;
  *
  * @author Rossen Stoyanchev
  * @author Rob Winch
+ * @author Mengqi Xu
  * @since 5.0
  */
 public class InMemoryWebSessionStore implements WebSessionStore {
@@ -49,6 +50,8 @@ public class InMemoryWebSessionStore implements WebSessionStore {
 
 
 	private int maxSessions = 10000;
+
+	private Duration defaultMaxIdleTime = Duration.ofMinutes(30);
 
 	private Clock clock = Clock.systemUTC();
 
@@ -75,6 +78,27 @@ public class InMemoryWebSessionStore implements WebSessionStore {
 	 */
 	public int getMaxSessions() {
 		return this.maxSessions;
+	}
+
+	/**
+	 * Set the default value for {@link WebSession#getMaxIdleTime() maxIdleTime}
+	 * for new sessions.
+	 * <p>By default, this is set to 30 minutes.
+	 * @param defaultMaxIdleTime the default max idle time
+	 * @since 7.0.2
+	 */
+	public void setDefaultMaxIdleTime(Duration defaultMaxIdleTime) {
+		Assert.notNull(defaultMaxIdleTime, "maxIdleTime is required");
+		this.defaultMaxIdleTime = defaultMaxIdleTime;
+	}
+
+	/**
+	 * Return the {@link #setDefaultMaxIdleTime(Duration) configured} default
+	 * maximum idle time for sessions.
+	 * @since 7.0.2
+	 */
+	public Duration getDefaultMaxIdleTime() {
+		return this.defaultMaxIdleTime;
 	}
 
 	/**
@@ -118,7 +142,7 @@ public class InMemoryWebSessionStore implements WebSessionStore {
 		Instant now = this.clock.instant();
 		this.expiredSessionChecker.checkIfNecessary(now);
 
-		return Mono.<WebSession>fromSupplier(() -> new InMemoryWebSession(now))
+		return Mono.<WebSession>fromSupplier(() -> new InMemoryWebSession(now, this.defaultMaxIdleTime))
 				.subscribeOn(Schedulers.boundedElastic())
 				.publishOn(Schedulers.parallel());
 	}
@@ -179,14 +203,15 @@ public class InMemoryWebSessionStore implements WebSessionStore {
 
 		private volatile Instant lastAccessTime;
 
-		private volatile Duration maxIdleTime = Duration.ofMinutes(30);
+		private volatile Duration maxIdleTime;
 
 		private final AtomicReference<State> state = new AtomicReference<>(State.NEW);
 
 
-		public InMemoryWebSession(Instant creationTime) {
+		public InMemoryWebSession(Instant creationTime, Duration maxIdleTime) {
 			this.creationTime = creationTime;
 			this.lastAccessTime = this.creationTime;
+			this.maxIdleTime = maxIdleTime;
 		}
 
 		@Override

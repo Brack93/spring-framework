@@ -18,6 +18,7 @@ package org.springframework.web.reactive.function.server.cache.operation
 
 import org.springframework.cache.interceptor.AbstractFallbackCacheOperationSource
 import org.springframework.cache.interceptor.CacheOperation
+import org.springframework.core.KotlinDetector
 import org.springframework.core.annotation.AnnotatedElementUtils
 import org.springframework.web.reactive.function.server.cache.CoRequestCacheable
 import java.lang.reflect.Method
@@ -26,6 +27,8 @@ internal class CoRequestCacheOperationSource : AbstractFallbackCacheOperationSou
 	override fun findCacheOperations(type: Class<*>): Collection<CacheOperation>? = null
 
 	override fun findCacheOperations(method: Method): Collection<CacheOperation>? {
+		if (!KotlinDetector.isSuspendingFunction(method)) return null
+
 		val coRequestCacheable =
 			AnnotatedElementUtils
 				.findMergedAnnotation(method, CoRequestCacheable::class.java) ?: return null

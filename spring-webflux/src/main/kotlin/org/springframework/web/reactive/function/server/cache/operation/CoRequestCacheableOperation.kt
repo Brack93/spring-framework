@@ -18,7 +18,20 @@ package org.springframework.web.reactive.function.server.cache.operation
 
 import org.springframework.cache.interceptor.CacheOperation
 
+/**
+ * Class describing a cache 'CoRequestCacheable' operation.
+ *
+ * @author Angelo Bracaglia
+ * @since 7.0
+ */
 internal class CoRequestCacheableOperation(builder: Builder) : CacheOperation(builder) {
+
+	/**
+	 * A builder that can be used to create a [CoRequestCacheableOperation].
+	 *
+	 * @author Angelo Bracaglia
+	 * @since 7.0
+	 */
 	class Builder : CacheOperation.Builder() {
 		override fun build(): CacheOperation {
 			return CoRequestCacheableOperation(this)

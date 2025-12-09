@@ -28,7 +28,30 @@ import kotlin.reflect.jvm.jvmName
 
 private val logger = LogFactory.getLog(CoRequestCacheInterceptor::class.java)
 
+/**
+ * AOP Alliance MethodInterceptor for request-scoped caching of Kotlin suspend method invocations.
+ *
+ * @author Angelo Bracaglia
+ * @since 7.0
+ */
 internal class CoRequestCacheInterceptor(private val keyGenerator: KeyGenerator) : MethodInterceptor {
+
+	/**
+	 * Use the provided [keyGenerator] to generate a unique key for the intercepted suspend method call.
+	 *
+	 * When not already present for the generated key, create and store in the [CoRequestCacheContext] element of the
+	 * web request coroutine a lazy cached version of the [invocation] result:
+	 *
+	 * - A [shared Mono][Mono.share], for [Mono] type.
+	 * - A [buffered][Flux.buffer], [flattened][Flux.flatMapIterable], [replayed Flux][Flux.replay], for [Flux] type.
+	 *
+	 * The suspend method result is expected to be already converted to a reactive type by the
+	 * [AopUtils.invokeJoinpointUsingReflection][org.springframework.aop.support.AopUtils.invokeJoinpointUsingReflection]
+	 * AOP utility.
+	 *
+	 * @author Angelo Bracaglia
+	 * @since 7.0
+	 */
 	override fun invoke(invocation: MethodInvocation): Any? {
 		val coRequestCache =
 			(invocation.arguments.lastOrNull() as? Continuation<*>)

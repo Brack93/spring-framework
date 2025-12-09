@@ -23,6 +23,14 @@ import org.springframework.core.annotation.AnnotatedElementUtils
 import org.springframework.web.reactive.function.server.cache.CoRequestCacheable
 import java.lang.reflect.Method
 
+/**
+ * Implementation of [CacheOperationSource][org.springframework.cache.interceptor.CacheOperationSource]
+ * interface detecting [CoRequestCacheable] annotations on suspend methods and exposing the corresponding
+ * [CoRequestCacheableOperation].
+ *
+ * @author Angelo Bracaglia
+ * @since 7.0
+ */
 internal class CoRequestCacheOperationSource : AbstractFallbackCacheOperationSource() {
 	override fun findCacheOperations(type: Class<*>): Collection<CacheOperation>? = null
 

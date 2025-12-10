@@ -35,6 +35,15 @@ import org.springframework.web.reactive.function.server.cache.interceptor.CoRequ
 import org.springframework.web.server.CoWebFilter
 import kotlin.reflect.jvm.jvmName
 
+/**
+ * `@Configuration` class that registers the Spring infrastructure beans necessary
+ * to enable proxy-based request-scoped cache for Spring WebFlux servers
+ * with Kotlin coroutines support enabled.
+ *
+ * @author Angelo Bracaglia
+ * @since 7.0
+ * @see CoRequestCacheConfigurationSelector
+ */
 @Configuration(proxyBeanMethods = false)
 @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
 internal class CoRequestCacheConfiguration : ImportAware {

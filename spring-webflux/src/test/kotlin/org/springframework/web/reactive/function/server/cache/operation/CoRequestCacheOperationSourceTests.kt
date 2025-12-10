@@ -28,6 +28,11 @@ private const val ANNOTATED_SUSPEND_METHOD_NAME = "annotatedSuspendMethod"
 private const val ANNOTATED_METHOD_NAME = "annotatedMethod"
 private const val NOT_ANNOTATED_SUSPEND_METHOD_NAME = "notAnnotatedSuspendMethod"
 
+/**
+ * Tests for [CoRequestCacheOperationSource].
+ *
+ * @author Angelo Bracaglia
+ */
 class CoRequestCacheOperationSourceTests {
 	class SampleBean {
 		@Suppress("Unused")

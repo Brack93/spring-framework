@@ -23,6 +23,11 @@ import org.junit.jupiter.api.Test
 import org.springframework.web.reactive.function.server.cache.operation.CoRequestCacheOperationSource
 import java.lang.reflect.Method
 
+/**
+ * Tests for [CoRequestCacheAdvisor].
+ *
+ * @author Angelo Bracaglia
+ */
 class CoRequestCacheAdvisorTests {
 	private val target = mockk<Any>()
 	private val method = mockk<Method>()

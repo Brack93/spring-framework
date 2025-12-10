@@ -29,6 +29,11 @@ import reactor.core.publisher.Mono
 import java.lang.reflect.Method
 import kotlin.coroutines.Continuation
 
+/**
+ * Tests for [CoRequestCacheInterceptor].
+ *
+ * @author Angelo Bracaglia
+ */
 class CoRequestCacheInterceptorTests {
 	private val coRequestCacheContext = CoRequestCacheContext()
 	private val continuation = mockk<Continuation<*>>()

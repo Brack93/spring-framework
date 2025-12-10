@@ -34,7 +34,9 @@ import kotlin.coroutines.Continuation
 private const val SAMPLE_METHOD_NAME = "sampleMethodName"
 
 /**
- * Tests for [CoRequestCacheKeyGenerator]
+ * Tests for [CoRequestCacheKeyGenerator].
+ *
+ * @author Angelo Bracaglia
  */
 class CoRequestCacheKeyGeneratorTests {
 	private val coRequestCacheOperationSource = mockk<CoRequestCacheOperationSource>()

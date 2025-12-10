@@ -31,6 +31,21 @@ import java.lang.reflect.Proxy
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.coroutines.Continuation
 
+/**
+ * Key generator for suspend method annotated by
+ * [@CoRequestCacheable][org.springframework.web.reactive.function.server.cache.CoRequestCacheable].
+ *
+ * If the only method parameter is the [Continuation] object, return a [NullaryMethodIdentity] instance,
+ * so that different beans with same method name still have distinct keys.
+ *
+ * If the method has other parameters, look for the
+ * [key expression][org.springframework.web.reactive.function.server.cache.CoRequestCacheable.key]
+ * using the [coRequestCacheOperationSource], and return a [SimpleKey] combining the nullary identity with
+ * the expression evaluation result, or with all the other parameters for a default blank key.
+ *
+ * @author Angelo Bracaglia
+ * @since 7.0
+ */
 internal class CoRequestCacheKeyGenerator(
 	private val coRequestCacheOperationSource: CoRequestCacheOperationSource,
 ) : KeyGenerator, CachedExpressionEvaluator() {

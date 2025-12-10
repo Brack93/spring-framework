@@ -24,6 +24,16 @@ import kotlin.reflect.jvm.jvmName
 
 private const val UNSUPPORTED_ADVISE_MODE_MESSAGE = "CoRequestCaching does not support aspectj advice mode"
 
+/**
+ * Select which classes to import according to the value of [EnableCoRequestCaching.mode] on the importing
+ * `@Configuration` class.
+ *
+ * Only [AdviceMode.PROXY] is currently supported.
+ *
+ * @author Angelo Bracaglia
+ * @since 7.0
+ * @see CoRequestCacheConfiguration
+ */
 internal class CoRequestCacheConfigurationSelector : AdviceModeImportSelector<EnableCoRequestCaching>() {
 	override fun selectImports(adviceMode: AdviceMode): Array<out String> =
 		when (adviceMode) {

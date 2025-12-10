@@ -21,6 +21,13 @@ import org.springframework.aop.support.StaticMethodMatcherPointcutAdvisor
 import org.springframework.web.reactive.function.server.cache.operation.CoRequestCacheOperationSource
 import java.lang.reflect.Method
 
+/**
+ * Advisor driven by a [coRequestCacheOperationSource], used to match suspend methods that are cacheable for the lifespan
+ * of the coroutine handling a web request.
+ *
+ * @author Angelo Bracaglia
+ * @since 7.0
+ */
 internal class CoRequestCacheAdvisor(
 	val coRequestCacheOperationSource: CoRequestCacheOperationSource,
 	coRequestCacheAdvice: Advice,

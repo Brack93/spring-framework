@@ -20,13 +20,13 @@ import io.mockk.every
 import io.mockk.mockk
 import org.aopalliance.aop.Advice
 import org.junit.jupiter.api.Test
-import org.springframework.cache.interceptor.CacheOperationSource
+import org.springframework.web.reactive.function.server.cache.operation.CoRequestCacheOperationSource
 import java.lang.reflect.Method
 
 class CoRequestCacheAdvisorTests {
 	private val target = mockk<Any>()
 	private val method = mockk<Method>()
-	private val coRequestCacheOperationSource = mockk<CacheOperationSource>()
+	private val coRequestCacheOperationSource = mockk<CoRequestCacheOperationSource>()
 
 	private val underTest = CoRequestCacheAdvisor(coRequestCacheOperationSource, mockk<Advice>())
 

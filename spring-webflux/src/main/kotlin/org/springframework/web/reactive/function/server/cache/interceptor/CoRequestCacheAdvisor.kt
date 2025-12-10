@@ -18,11 +18,11 @@ package org.springframework.web.reactive.function.server.cache.interceptor
 
 import org.aopalliance.aop.Advice
 import org.springframework.aop.support.StaticMethodMatcherPointcutAdvisor
-import org.springframework.cache.interceptor.CacheOperationSource
+import org.springframework.web.reactive.function.server.cache.operation.CoRequestCacheOperationSource
 import java.lang.reflect.Method
 
 internal class CoRequestCacheAdvisor(
-	val coRequestCacheOperationSource: CacheOperationSource,
+	val coRequestCacheOperationSource: CoRequestCacheOperationSource,
 	coRequestCacheAdvice: Advice,
 ) : StaticMethodMatcherPointcutAdvisor(coRequestCacheAdvice) {
 	override fun matches(method: Method, targetClass: Class<*>): Boolean =

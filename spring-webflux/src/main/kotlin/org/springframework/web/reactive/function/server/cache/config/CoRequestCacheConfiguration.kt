@@ -65,7 +65,7 @@ internal class CoRequestCacheConfiguration : ImportAware {
 	@Bean
 	@Role(BeanDefinition.ROLE_INFRASTRUCTURE)
 	fun coRequestCacheAdvisor(
-		coRequestCacheOperationSource: CacheOperationSource,
+		coRequestCacheOperationSource: CoRequestCacheOperationSource,
 		coRequestCacheInterceptor: MethodInterceptor
 	): Advisor =
 		CoRequestCacheAdvisor(

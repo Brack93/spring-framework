@@ -16,7 +16,7 @@
 
 package org.springframework.web.reactive.function.server.cache.interceptor
 
-internal data class NullaryMethodIdentity(
+internal data class NullaryMethodKey(
 	val clazz: Class<*>,
 	val methodName: String
 )

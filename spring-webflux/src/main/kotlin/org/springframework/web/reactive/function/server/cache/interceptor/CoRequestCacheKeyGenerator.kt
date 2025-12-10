@@ -35,7 +35,7 @@ import kotlin.coroutines.Continuation
  * Key generator for suspend method annotated by
  * [@CoRequestCacheable][org.springframework.web.reactive.function.server.cache.CoRequestCacheable].
  *
- * If the only method parameter is the [Continuation] object, return a [NullaryMethodIdentity] instance,
+ * If the only method parameter is the [Continuation] object, return a [NullaryMethodKey] instance,
  * so that different beans with same method name still have distinct keys.
  *
  * If the method has other parameters, look for the
@@ -55,16 +55,16 @@ internal class CoRequestCacheKeyGenerator(
 		check(params.lastOrNull() is Continuation<*>)
 
 		val targetClass = AopProxyUtils.ultimateTargetClass(target)
-		val nullaryMethodIdentity = NullaryMethodIdentity(targetClass, method.name)
+		val nullaryMethodKey = NullaryMethodKey(targetClass, method.name)
 
 		if (params.size == 1) {
-			return nullaryMethodIdentity
+			return nullaryMethodKey
 		}
 
 		val keyExpression: String = coRequestCacheKeyExpression(method, targetClass)
 
 		return if (keyExpression.isBlank()) {
-			SimpleKey(nullaryMethodIdentity, *params.copyOfRange(0, params.size - 1))
+			SimpleKey(nullaryMethodKey, *params.copyOfRange(0, params.size - 1))
 		} else {
 			val targetMethod = ultimateTargetMethod(method, targetClass)
 
@@ -83,7 +83,7 @@ internal class CoRequestCacheKeyGenerator(
 					parameterNameDiscoverer,
 				)
 
-			SimpleKey(nullaryMethodIdentity, expression.getValue(context))
+			SimpleKey(nullaryMethodKey, expression.getValue(context))
 		}
 	}
 

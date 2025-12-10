@@ -61,15 +61,15 @@ class CoRequestCacheKeyGeneratorTests {
 	}
 
 	@Test
-	fun `should return a NullaryMethodIdentity when the only method parameter is a continuation object`() {
+	fun `should return a NullaryMethodKey when the only method parameter is a continuation object`() {
 		val key = underTest.generate(target, method, continuation)
 
-		val expectedKey = NullaryMethodIdentity(target::class.java, SAMPLE_METHOD_NAME)
+		val expectedKey = NullaryMethodKey(target::class.java, SAMPLE_METHOD_NAME)
 		assertThat(key).isEqualTo(expectedKey)
 	}
 
 	@Test
-	fun `should return a SimpleKey combining the NullaryMethodIdentity and all the arguments for empty key expression`() {
+	fun `should return a SimpleKey combining the NullaryMethodKey and all the arguments for empty key expression`() {
 		val coRequestCacheableOperation = CoRequestCacheableOperation.Builder().apply { key = "" }.build()
 		every { coRequestCacheOperationSource.getCacheOperations(method, target::class.java) } returns
 				listOf(coRequestCacheableOperation)
@@ -79,7 +79,7 @@ class CoRequestCacheKeyGeneratorTests {
 		val key = underTest.generate(target, method, firstParameterValue, secondParameterValue, continuation)
 
 		val expectedKey = SimpleKey(
-			NullaryMethodIdentity(target::class.java, SAMPLE_METHOD_NAME),
+			NullaryMethodKey(target::class.java, SAMPLE_METHOD_NAME),
 			firstParameterValue,
 			secondParameterValue
 		)
@@ -87,7 +87,7 @@ class CoRequestCacheKeyGeneratorTests {
 	}
 
 	@Test
-	fun `should return a SimpleKey combining the NullaryMethodIdentity and evaluated key expression`() {
+	fun `should return a SimpleKey combining the NullaryMethodKey and evaluated key expression`() {
 		class SampleBean {
 			@Suppress("Unused")
 			suspend fun sampleMethod(firstParameter: String, secondParameter: Int) {
@@ -115,7 +115,7 @@ class CoRequestCacheKeyGeneratorTests {
 		)
 
 		val expectedKey = SimpleKey(
-			NullaryMethodIdentity(SampleBean::class.java, sampleMethod.name),
+			NullaryMethodKey(SampleBean::class.java, sampleMethod.name),
 			firstParameterValue
 		)
 		assertThat(key).isEqualTo(expectedKey)

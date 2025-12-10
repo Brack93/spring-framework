@@ -16,6 +16,12 @@
 
 package org.springframework.web.reactive.function.server.cache.interceptor
 
+/**
+ * A unique identifier for a nullary method of a class.
+ *
+ * @author Angelo Bracaglia
+ * @since 7.0
+ */
 internal data class NullaryMethodKey(
 	val clazz: Class<*>,
 	val methodName: String

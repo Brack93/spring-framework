@@ -21,6 +21,14 @@ import java.util.concurrent.ConcurrentHashMap
 import kotlin.coroutines.AbstractCoroutineContextElement
 import kotlin.coroutines.CoroutineContext
 
+/**
+ * A coroutine context element holding the [cache] values for
+ * [@CoRequestCacheable][org.springframework.web.reactive.function.server.cache.CoRequestCacheable]
+ * annotated methods.
+ *
+ * @author Angelo Bracaglia
+ * @since 7.0
+ */
 internal class CoRequestCacheContext(
 	val cache: ConcurrentHashMap<Any, Publisher<*>> = ConcurrentHashMap()
 ) : AbstractCoroutineContextElement(Key) {

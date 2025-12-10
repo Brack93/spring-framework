@@ -21,6 +21,16 @@ import org.springframework.web.server.CoWebFilter
 import org.springframework.web.server.CoWebFilterChain
 import org.springframework.web.server.ServerWebExchange
 
+/**
+ * Add a [CoRequestCacheContext] element to the web request coroutine context.
+ *
+ * This [CoWebFilter] is automatically registered when
+ * [EnableCoRequestCaching][org.springframework.web.reactive.function.server.cache.EnableCoRequestCaching]
+ * is applied to the app configuration.
+ *
+ * @author Angelo Bracaglia
+ * @since 7.0
+ */
 internal class CoRequestCacheWebFilter : CoWebFilter() {
 	override suspend fun filter(
 		exchange: ServerWebExchange,

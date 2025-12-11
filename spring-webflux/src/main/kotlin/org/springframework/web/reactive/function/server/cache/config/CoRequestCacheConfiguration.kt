@@ -19,7 +19,6 @@ package org.springframework.web.reactive.function.server.cache.config
 import org.aopalliance.intercept.MethodInterceptor
 import org.springframework.aop.Advisor
 import org.springframework.beans.factory.config.BeanDefinition
-import org.springframework.cache.interceptor.CacheOperationSource
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.context.annotation.ImportAware
@@ -60,7 +59,7 @@ internal class CoRequestCacheConfiguration : ImportAware {
 
 	@Bean
 	@Role(BeanDefinition.ROLE_INFRASTRUCTURE)
-	fun coRequestCacheOperationSource(): CacheOperationSource = CoRequestCacheOperationSource()
+	fun coRequestCacheOperationSource(): CoRequestCacheOperationSource = CoRequestCacheOperationSource()
 
 	@Bean
 	@Role(BeanDefinition.ROLE_INFRASTRUCTURE)

@@ -17,10 +17,13 @@
 package org.springframework.resilience.retry;
 
 import java.lang.reflect.Method;
+import java.time.Duration;
 import java.util.concurrent.Future;
 
 import org.aopalliance.intercept.MethodInterceptor;
 import org.aopalliance.intercept.MethodInvocation;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.jspecify.annotations.Nullable;
 import org.reactivestreams.Publisher;
 import reactor.core.publisher.Flux;
@@ -48,6 +51,8 @@ import org.springframework.util.ClassUtils;
  * @see Flux#retryWhen
  */
 public abstract class AbstractRetryInterceptor implements MethodInterceptor {
+
+	private static final Log logger = LogFactory.getLog(AbstractRetryInterceptor.class);
 
 	/**
 	 * Reactive Streams API present on the classpath?
@@ -94,12 +99,14 @@ public abstract class AbstractRetryInterceptor implements MethodInterceptor {
 				.excludes(spec.excludes())
 				.predicate(spec.predicate().forMethod(method))
 				.maxRetries(spec.maxRetries())
+				.timeout(spec.timeout())
 				.delay(spec.delay())
 				.jitter(spec.jitter())
 				.multiplier(spec.multiplier())
 				.maxDelay(spec.maxDelay())
 				.build();
 		RetryTemplate retryTemplate = new RetryTemplate(retryPolicy);
+		String methodName = ClassUtils.getQualifiedMethodName(method, (target != null ? target.getClass() : null));
 
 		try {
 			return retryTemplate.execute(new Retryable<@Nullable Object>() {
@@ -110,11 +117,14 @@ public abstract class AbstractRetryInterceptor implements MethodInterceptor {
 				}
 				@Override
 				public String getName() {
-					return ClassUtils.getQualifiedMethodName(method, (target != null ? target.getClass() : null));
+					return methodName;
 				}
 			});
 		}
 		catch (RetryException ex) {
+			if (logger.isDebugEnabled()) {
+				logger.debug("@Retryable operation '%s' failed".formatted(methodName), ex);
+			}
 			throw ex.getCause();
 		}
 	}
@@ -142,8 +152,20 @@ public abstract class AbstractRetryInterceptor implements MethodInterceptor {
 					.multiplier(spec.multiplier())
 					.maxBackoff(spec.maxDelay())
 					.filter(spec.combinedPredicate().forMethod(method));
-			publisher = (adapter.isMultiValue() ? Flux.from(publisher).retryWhen(retry) :
-					Mono.from(publisher).retryWhen(retry));
+
+			Duration timeout = spec.timeout();
+			boolean timeoutIsPositive = (!timeout.isNegative() && !timeout.isZero());
+			if (adapter.isMultiValue()) {
+				publisher = (timeoutIsPositive ?
+						Flux.from(publisher).retryWhen(retry).timeout(timeout) :
+						Flux.from(publisher).retryWhen(retry));
+			}
+			else {
+				publisher = (timeoutIsPositive ?
+						Mono.from(publisher).retryWhen(retry).timeout(timeout) :
+						Mono.from(publisher).retryWhen(retry));
+			}
+
 			return adapter.fromPublisher(publisher);
 		}
 

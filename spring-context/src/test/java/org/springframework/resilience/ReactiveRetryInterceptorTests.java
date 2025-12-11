@@ -21,9 +21,11 @@ import java.nio.charset.MalformedInputException;
 import java.nio.file.AccessDeniedException;
 import java.nio.file.FileSystemException;
 import java.time.Duration;
+import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.assertj.core.api.ThrowingConsumer;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import reactor.core.Exceptions;
 import reactor.core.publisher.Flux;
@@ -65,17 +67,12 @@ class ReactiveRetryInterceptorTests {
 				.havingCause()
 					.isInstanceOf(IOException.class)
 					.withMessage("6");
-		assertThat(target.counter.get()).isEqualTo(6);
+		assertThat(target.counter).hasValue(6);
 	}
 
 	@Test
 	void withPostProcessorForMethod() {
-		DefaultListableBeanFactory bf = new DefaultListableBeanFactory();
-		bf.registerBeanDefinition("bean", new RootBeanDefinition(AnnotatedMethodBean.class));
-		RetryAnnotationBeanPostProcessor bpp = new RetryAnnotationBeanPostProcessor();
-		bpp.setBeanFactory(bf);
-		bf.addBeanPostProcessor(bpp);
-		AnnotatedMethodBean proxy = bf.getBean(AnnotatedMethodBean.class);
+		AnnotatedMethodBean proxy = getProxiedAnnotatedMethodBean();
 		AnnotatedMethodBean target = (AnnotatedMethodBean) AopProxyUtils.getSingletonTarget(proxy);
 
 		assertThatIllegalStateException()
@@ -84,7 +81,7 @@ class ReactiveRetryInterceptorTests {
 				.havingCause()
 					.isInstanceOf(IOException.class)
 					.withMessage("6");
-		assertThat(target.counter.get()).isEqualTo(6);
+		assertThat(target.counter).hasValue(6);
 	}
 
 	@Test
@@ -105,7 +102,7 @@ class ReactiveRetryInterceptorTests {
 		// 3 = 1 initial invocation + 2 retry attempts
 		// Not 3 retry attempts, because RejectMalformedInputException3Predicate rejects
 		// a retry if the last exception was a MalformedInputException with message "3".
-		assertThat(target.counter.get()).isEqualTo(3);
+		assertThat(target.counter).hasValue(3);
 	}
 
 	@Test
@@ -119,7 +116,7 @@ class ReactiveRetryInterceptorTests {
 				.satisfies(isRetryExhaustedException())
 				.withCauseInstanceOf(FileSystemException.class);
 		// 1 initial attempt + 3 retries
-		assertThat(target.counter.get()).isEqualTo(4);
+		assertThat(target.counter).hasValue(4);
 	}
 
 	@Test  // gh-35583
@@ -135,7 +132,7 @@ class ReactiveRetryInterceptorTests {
 					.isExactlyInstanceOf(RuntimeException.class)
 					.withCauseExactlyInstanceOf(FileSystemException.class);
 		// 1 initial attempt + 3 retries
-		assertThat(target.counter.get()).isEqualTo(4);
+		assertThat(target.counter).hasValue(4);
 	}
 
 	@Test
@@ -151,7 +148,7 @@ class ReactiveRetryInterceptorTests {
 				.satisfies(isReactiveException())
 				.withCauseInstanceOf(AccessDeniedException.class);
 		// 1 initial attempt + 0 retries
-		assertThat(target.counter.get()).isEqualTo(1);
+		assertThat(target.counter).hasValue(1);
 	}
 
 	@Test
@@ -170,7 +167,7 @@ class ReactiveRetryInterceptorTests {
 				.isThrownBy(() -> proxy.arithmeticOperation().block())
 				.withMessage("1");
 		// 1 initial attempt + 0 retries
-		assertThat(target.counter.get()).isEqualTo(1);
+		assertThat(target.counter).hasValue(1);
 	}
 
 	@Test
@@ -184,7 +181,7 @@ class ReactiveRetryInterceptorTests {
 				.satisfies(isRetryExhaustedException())
 				.withCauseInstanceOf(IOException.class);
 		// 1 initial attempt + 1 retry
-		assertThat(target.counter.get()).isEqualTo(2);
+		assertThat(target.counter).hasValue(2);
 	}
 
 	@Test
@@ -204,7 +201,7 @@ class ReactiveRetryInterceptorTests {
 				.havingCause()
 					.isInstanceOf(IOException.class)
 					.withMessage("2");
-		assertThat(target.counter.get()).isEqualTo(2);
+		assertThat(target.counter).hasValue(2);
 	}
 
 	@Test
@@ -224,7 +221,7 @@ class ReactiveRetryInterceptorTests {
 				.havingCause()
 				.isInstanceOf(IOException.class)
 				.withMessage("1");
-		assertThat(target.counter.get()).isEqualTo(1);
+		assertThat(target.counter).hasValue(1);
 	}
 
 	@Test
@@ -243,7 +240,7 @@ class ReactiveRetryInterceptorTests {
 				.havingCause()
 					.isInstanceOf(IOException.class)
 					.withMessage("4");
-		assertThat(target.counter.get()).isEqualTo(4);
+		assertThat(target.counter).hasValue(4);
 	}
 
 	@Test
@@ -262,7 +259,7 @@ class ReactiveRetryInterceptorTests {
 				.havingCause()
 					.isInstanceOf(IOException.class)
 					.withMessage("4");
-		assertThat(target.counter.get()).isEqualTo(4);
+		assertThat(target.counter).hasValue(4);
 	}
 
 	@Test
@@ -281,7 +278,7 @@ class ReactiveRetryInterceptorTests {
 				.havingCause()
 					.isInstanceOf(IOException.class)
 					.withMessage("4");
-		assertThat(target.counter.get()).isEqualTo(4);
+		assertThat(target.counter).hasValue(4);
 	}
 
 	@Test
@@ -297,7 +294,7 @@ class ReactiveRetryInterceptorTests {
 		String result = proxy.retryOperation().block();
 		assertThat(result).isEqualTo("success");
 		// Should execute only once because of successful return
-		assertThat(target.counter.get()).isEqualTo(1);
+		assertThat(target.counter).hasValue(1);
 	}
 
 	@Test
@@ -317,7 +314,84 @@ class ReactiveRetryInterceptorTests {
 					.isInstanceOf(NumberFormatException.class)
 					.withMessage("always fails");
 		// 1 initial attempt + 3 retries
-		assertThat(target.counter.get()).isEqualTo(4);
+		assertThat(target.counter).hasValue(4);
+	}
+
+
+	@Nested
+	class TimeoutTests {
+
+		private final AnnotatedMethodBean proxy = getProxiedAnnotatedMethodBean();
+		private final AnnotatedMethodBean target = (AnnotatedMethodBean) AopProxyUtils.getSingletonTarget(proxy);
+
+		@Test
+		void timeoutNotExceededAfterInitialSuccess() {
+			String result = proxy.retryOperationWithTimeoutNotExceededAfterInitialSuccess().block();
+			assertThat(result).isEqualTo("success");
+			// 1 initial attempt + 0 retries
+			assertThat(target.counter).hasValue(1);
+		}
+
+		@Test
+		void timeoutNotExceededAndRetriesExhausted() {
+			assertThatIllegalStateException()
+					.isThrownBy(() -> proxy.retryOperationWithTimeoutNotExceededAndRetriesExhausted().block())
+					.satisfies(isRetryExhaustedException())
+					.havingCause()
+						.isInstanceOf(IOException.class)
+						.withMessage("4");
+			// 1 initial attempt + 3 retries
+			assertThat(target.counter).hasValue(4);
+		}
+
+		@Test
+		void timeoutExceededAfterInitialFailure() {
+			assertThatRuntimeException()
+					.isThrownBy(() -> proxy.retryOperationWithTimeoutExceededAfterInitialFailure().block())
+					.satisfies(isReactiveException())
+					.havingCause()
+						.isInstanceOf(TimeoutException.class)
+						.withMessageContaining("within 20ms");
+			// 1 initial attempt + 0 retries
+			assertThat(target.counter).hasValue(1);
+		}
+
+		@Test
+		void timeoutExceededAfterFirstDelayButBeforeFirstRetry() {
+			assertThatRuntimeException()
+					.isThrownBy(() -> proxy.retryOperationWithTimeoutExceededAfterFirstDelayButBeforeFirstRetry().block())
+					.satisfies(isReactiveException())
+					.havingCause()
+						.isInstanceOf(TimeoutException.class)
+						.withMessageContaining("within 20ms");
+			// 1 initial attempt + 0 retries
+			assertThat(target.counter).hasValue(1);
+		}
+
+		@Test
+		void timeoutExceededAfterFirstRetry() {
+			assertThatRuntimeException()
+					.isThrownBy(() -> proxy.retryOperationWithTimeoutExceededAfterFirstRetry().block())
+					.satisfies(isReactiveException())
+					.havingCause()
+						.isInstanceOf(TimeoutException.class)
+						.withMessageContaining("within 20ms");
+			// 1 initial attempt + 1 retry
+			assertThat(target.counter).hasValue(2);
+		}
+
+		@Test
+		void timeoutExceededAfterSecondRetry() {
+			assertThatRuntimeException()
+					.isThrownBy(() -> proxy.retryOperationWithTimeoutExceededAfterSecondRetry().block())
+					.satisfies(isReactiveException())
+					.havingCause()
+						.isInstanceOf(TimeoutException.class)
+						.withMessageContaining("within 20ms");
+			// 1 initial attempt + 2 retries
+			assertThat(target.counter).hasValue(3);
+		}
+
 	}
 
 
@@ -329,13 +403,23 @@ class ReactiveRetryInterceptorTests {
 		return ex -> assertThat(ex).matches(Exceptions::isRetryExhausted, "is RetryExhaustedException");
 	}
 
+	private static AnnotatedMethodBean getProxiedAnnotatedMethodBean() {
+		DefaultListableBeanFactory bf = createBeanFactoryFor(AnnotatedMethodBean.class);
+		return bf.getBean(AnnotatedMethodBean.class);
+	}
+
 	private static AnnotatedClassBean getProxiedAnnotatedClassBean() {
+		DefaultListableBeanFactory bf = createBeanFactoryFor(AnnotatedClassBean.class);
+		return bf.getBean(AnnotatedClassBean.class);
+	}
+
+	private static DefaultListableBeanFactory createBeanFactoryFor(Class<?> beanClass) {
 		DefaultListableBeanFactory bf = new DefaultListableBeanFactory();
-		bf.registerBeanDefinition("bean", new RootBeanDefinition(AnnotatedClassBean.class));
+		bf.registerBeanDefinition("bean", new RootBeanDefinition(beanClass));
 		RetryAnnotationBeanPostProcessor bpp = new RetryAnnotationBeanPostProcessor();
 		bpp.setBeanFactory(bf);
 		bf.addBeanPostProcessor(bpp);
-		return bf.getBean(AnnotatedClassBean.class);
+		return bf;
 	}
 
 
@@ -360,6 +444,61 @@ class ReactiveRetryInterceptorTests {
 		public Mono<Object> retryOperation() {
 			return Mono.fromCallable(() -> {
 				counter.incrementAndGet();
+				throw new IOException(counter.toString());
+			});
+		}
+
+		@Retryable(timeout = 555, delay = 10)
+		public Mono<String> retryOperationWithTimeoutNotExceededAfterInitialSuccess() {
+			return Mono.fromCallable(() -> {
+				counter.incrementAndGet();
+				return "success";
+			});
+		}
+
+		@Retryable(timeout = 555, delay = 10)
+		public Mono<Object> retryOperationWithTimeoutNotExceededAndRetriesExhausted() {
+			return Mono.fromCallable(() -> {
+				counter.incrementAndGet();
+				throw new IOException(counter.toString());
+			});
+		}
+
+		@Retryable(timeout = 20, delay = 0)
+		public Mono<Object> retryOperationWithTimeoutExceededAfterInitialFailure() {
+			return Mono.fromCallable(() -> {
+				counter.incrementAndGet();
+				Thread.sleep(100);
+				throw new IOException(counter.toString());
+			});
+		}
+
+		@Retryable(timeout = 20, delay = 100) // Delay > Timeout
+		public Mono<Object> retryOperationWithTimeoutExceededAfterFirstDelayButBeforeFirstRetry() {
+			return Mono.fromCallable(() -> {
+				counter.incrementAndGet();
+				throw new IOException(counter.toString());
+			});
+		}
+
+		@Retryable(timeout = 20, delay = 0)
+		public Mono<Object> retryOperationWithTimeoutExceededAfterFirstRetry() {
+			return Mono.fromCallable(() -> {
+				counter.incrementAndGet();
+				if (counter.get() == 2) {
+					Thread.sleep(100);
+				}
+				throw new IOException(counter.toString());
+			});
+		}
+
+		@Retryable(timeout = 20, delay = 0)
+		public Mono<Object> retryOperationWithTimeoutExceededAfterSecondRetry() {
+			return Mono.fromCallable(() -> {
+				counter.incrementAndGet();
+				if (counter.get() == 3) {
+					Thread.sleep(100);
+				}
 				throw new IOException(counter.toString());
 			});
 		}

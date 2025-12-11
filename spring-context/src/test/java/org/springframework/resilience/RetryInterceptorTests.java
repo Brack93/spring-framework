@@ -27,6 +27,7 @@ import java.util.concurrent.CompletionException;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.aopalliance.intercept.MethodInterceptor;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
 import org.springframework.aop.config.AopConfigUtils;
@@ -99,11 +100,7 @@ class RetryInterceptorTests {
 
 	@Test
 	void withPostProcessorForMethod() {
-		DefaultListableBeanFactory bf = new DefaultListableBeanFactory();
-		bf.registerBeanDefinition("bean", new RootBeanDefinition(AnnotatedMethodBean.class));
-		RetryAnnotationBeanPostProcessor bpp = new RetryAnnotationBeanPostProcessor();
-		bpp.setBeanFactory(bf);
-		bf.addBeanPostProcessor(bpp);
+		DefaultListableBeanFactory bf = createBeanFactoryFor(AnnotatedMethodBean.class);
 		AnnotatedMethodBean proxy = bf.getBean(AnnotatedMethodBean.class);
 		AnnotatedMethodBean target = (AnnotatedMethodBean) AopProxyUtils.getSingletonTarget(proxy);
 
@@ -113,11 +110,7 @@ class RetryInterceptorTests {
 
 	@Test
 	void withPostProcessorForMethodWithInterface() {
-		DefaultListableBeanFactory bf = new DefaultListableBeanFactory();
-		bf.registerBeanDefinition("bean", new RootBeanDefinition(AnnotatedMethodBeanWithInterface.class));
-		RetryAnnotationBeanPostProcessor bpp = new RetryAnnotationBeanPostProcessor();
-		bpp.setBeanFactory(bf);
-		bf.addBeanPostProcessor(bpp);
+		DefaultListableBeanFactory bf = createBeanFactoryFor(AnnotatedMethodBeanWithInterface.class);
 		AnnotatedInterface proxy = bf.getBean(AnnotatedInterface.class);
 		AnnotatedMethodBeanWithInterface target = (AnnotatedMethodBeanWithInterface) AopProxyUtils.getSingletonTarget(proxy);
 
@@ -179,11 +172,7 @@ class RetryInterceptorTests {
 
 	@Test
 	void withPostProcessorForClass() {
-		DefaultListableBeanFactory bf = new DefaultListableBeanFactory();
-		bf.registerBeanDefinition("bean", new RootBeanDefinition(AnnotatedClassBean.class));
-		RetryAnnotationBeanPostProcessor bpp = new RetryAnnotationBeanPostProcessor();
-		bpp.setBeanFactory(bf);
-		bf.addBeanPostProcessor(bpp);
+		DefaultListableBeanFactory bf = createBeanFactoryFor(AnnotatedClassBean.class);
 		AnnotatedClassBean proxy = bf.getBean(AnnotatedClassBean.class);
 		AnnotatedClassBean target = (AnnotatedClassBean) AopProxyUtils.getSingletonTarget(proxy);
 
@@ -324,6 +313,79 @@ class RetryInterceptorTests {
 	}
 
 
+	@Nested
+	class TimeoutTests {
+
+		private final DefaultListableBeanFactory bf = createBeanFactoryFor(AnnotatedMethodBean.class);
+		private final AnnotatedMethodBean proxy = bf.getBean(AnnotatedMethodBean.class);
+		private final AnnotatedMethodBean target = (AnnotatedMethodBean) AopProxyUtils.getSingletonTarget(proxy);
+
+		@Test
+		void timeoutNotExceededAfterInitialSuccess() {
+			String result = proxy.retryOperationWithTimeoutNotExceededAfterInitialSuccess();
+			assertThat(result).isEqualTo("success");
+			// 1 initial attempt + 0 retries
+			assertThat(target.counter).isEqualTo(1);
+		}
+
+		@Test
+		void timeoutNotExceededAndRetriesExhausted() {
+			assertThatIOException()
+					.isThrownBy(proxy::retryOperationWithTimeoutNotExceededAndRetriesExhausted)
+					.withMessage("4");
+			// 1 initial attempt + 3 retries
+			assertThat(target.counter).isEqualTo(4);
+		}
+
+		@Test
+		void timeoutExceededAfterInitialFailure() {
+			assertThatIOException()
+					.isThrownBy(proxy::retryOperationWithTimeoutExceededAfterInitialFailure)
+					.withMessage("1");
+			// 1 initial attempt + 0 retries
+			assertThat(target.counter).isEqualTo(1);
+		}
+
+		@Test
+		void timeoutExceededAfterFirstDelayButBeforeFirstRetry() {
+			assertThatIOException()
+					.isThrownBy(proxy::retryOperationWithTimeoutExceededAfterFirstDelayButBeforeFirstRetry)
+					.withMessage("1");
+			// 1 initial attempt + 0 retries
+			assertThat(target.counter).isEqualTo(1);
+		}
+
+		@Test
+		void timeoutExceededAfterFirstRetry() {
+			assertThatIOException()
+					.isThrownBy(proxy::retryOperationWithTimeoutExceededAfterFirstRetry)
+					.withMessage("2");
+			// 1 initial attempt + 1 retry
+			assertThat(target.counter).isEqualTo(2);
+		}
+
+		@Test
+		void timeoutExceededAfterSecondRetry() {
+			assertThatIOException()
+					.isThrownBy(proxy::retryOperationWithTimeoutExceededAfterSecondRetry)
+					.withMessage("3");
+			// 1 initial attempt + 2 retries
+			assertThat(target.counter).isEqualTo(3);
+		}
+
+	}
+
+
+	private static DefaultListableBeanFactory createBeanFactoryFor(Class<?> beanClass) {
+		DefaultListableBeanFactory bf = new DefaultListableBeanFactory();
+		bf.registerBeanDefinition("bean", new RootBeanDefinition(beanClass));
+		RetryAnnotationBeanPostProcessor bpp = new RetryAnnotationBeanPostProcessor();
+		bpp.setBeanFactory(bf);
+		bf.addBeanPostProcessor(bpp);
+		return bf;
+	}
+
+
 	static class NonAnnotatedBean implements PlainInterface {
 
 		int counter = 0;
@@ -349,6 +411,49 @@ class RetryInterceptorTests {
 		@Retryable(maxRetries = 5, delay = 10)
 		public void retryOperation() throws IOException {
 			counter++;
+			throw new IOException(Integer.toString(counter));
+		}
+
+		@Retryable(timeout = 555, delay = 10)
+		public String retryOperationWithTimeoutNotExceededAfterInitialSuccess() {
+			counter++;
+			return "success";
+		}
+
+		@Retryable(timeout = 555, delay = 10)
+		public void retryOperationWithTimeoutNotExceededAndRetriesExhausted() throws Exception {
+			counter++;
+			throw new IOException(Integer.toString(counter));
+		}
+
+		@Retryable(timeout = 20, delay = 0)
+		public void retryOperationWithTimeoutExceededAfterInitialFailure() throws Exception {
+			counter++;
+			Thread.sleep(100);
+			throw new IOException(Integer.toString(counter));
+		}
+
+		@Retryable(timeout = 20, delay = 100) // Delay > Timeout
+		public void retryOperationWithTimeoutExceededAfterFirstDelayButBeforeFirstRetry() throws IOException {
+			counter++;
+			throw new IOException(Integer.toString(counter));
+		}
+
+		@Retryable(timeout = 20, delay = 0)
+		public void retryOperationWithTimeoutExceededAfterFirstRetry() throws Exception {
+			counter++;
+			if (counter == 2) {
+				Thread.sleep(100);
+			}
+			throw new IOException(Integer.toString(counter));
+		}
+
+		@Retryable(timeout = 20, delay = 0)
+		public void retryOperationWithTimeoutExceededAfterSecondRetry() throws Exception {
+			counter++;
+			if (counter == 3) {
+				Thread.sleep(100);
+			}
 			throw new IOException(Integer.toString(counter));
 		}
 	}
